@@ -4,6 +4,7 @@ import HowItWorks from "../components/HowItWorks";
 import CliDocsSection from "../components/CliDocsSection";
 import FeatureCard from "../components/FeatureCard";
 import MetricCard from "../components/MetricCard";
+import PricingSection from "../components/PricingSection";
 import Footer from "../components/Footer";
 
 export const metadata: Metadata = {
@@ -127,6 +128,7 @@ export default function Home() {
     <main className="bg-slate-50 text-slate-900">
       <Hero />
       <HowItWorks />
+      <PricingSection />
       <CliDocsSection />
       <section id="features" className="mx-auto max-w-6xl px-6 py-20">
         <div className="flex flex-col gap-3 text-center">
