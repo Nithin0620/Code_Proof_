@@ -215,7 +215,7 @@ export default function Hero() {
               </svg>
             </Link>
             <Link
-              href="https://github.com/Nithin0620/code_proof"
+              href="https://github.com/lalitchandra00/Code_proof"
               className="btn-secondary inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium"
               target="_blank"
               rel="noreferrer"
