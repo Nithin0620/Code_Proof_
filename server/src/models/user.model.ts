@@ -5,9 +5,9 @@ type UsageHistoryEntry = {
   count: number;
 };
 
-const startOfCurrentMonth = () => {
+const startOfCurrentDay = () => {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
 };
 
 export interface UserDocument extends Document {
@@ -27,7 +27,7 @@ const UserSchema = new Schema<UserDocument>(
     userId: { type: String, required: true, unique: true },
     linkedClientIds: { type: [String], required: true, default: [] },
     plan: { type: String, required: true, default: "free", enum: ["free", "premium"] },
-    monthlyLimit: { type: Number, required: true, default: 50 },
+    monthlyLimit: { type: Number, required: true, default: 20 },
     monthlyUsed: { type: Number, required: true, default: 0 },
     usageHistory: {
       type: [
@@ -39,7 +39,7 @@ const UserSchema = new Schema<UserDocument>(
       required: true,
       default: [],
     },
-    resetAt: { type: Date, required: true, default: startOfCurrentMonth },
+    resetAt: { type: Date, required: true, default: startOfCurrentDay },
     createdAt: { type: Date, required: true, default: Date.now },
     lastLoginAt: { type: Date, required: true, default: Date.now },
   },
