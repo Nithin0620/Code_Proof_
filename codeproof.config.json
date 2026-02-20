@@ -1,5 +1,5 @@
 {
-  "projectId": "4d114809-8f1c-49c0-b184-405c897b1bb8",
+  "projectId": "6307a9cc-83fd-4f8f-95c6-2cb63c7e2026",
   "projectType": "Node",
   "scanMode": "full",
   "enforcement": "disabled",
@@ -10,7 +10,7 @@
     "secretRemediation": false
   },
   "integration": {
-    "enabled": false,
+    "enabled": true,
     "endpointUrl": ""
   },
   "severityRules": {
