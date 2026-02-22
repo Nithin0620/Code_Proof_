@@ -1,11 +1,11 @@
 "use client";
+import { useEffect, useRef } from "react";
 
 import {
   CartesianGrid,
   Line,
   LineChart,
   ReferenceLine,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -30,7 +30,37 @@ function formatLabel(value: string) {
   });
 }
 
+function toDateKey(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function fromDateKey(value: string) {
+  const parts = value.split("-").map(Number);
+  if (parts.length === 3 && parts.every((part) => Number.isFinite(part))) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+const CHART_HEIGHT = 256;
+const Y_AXIS_WIDTH = 35;
+const MAX_USAGE = 30;
+
 export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [usageHistory.length]);
+
   if (!usageHistory.length) {
     return (
       <div
@@ -50,9 +80,29 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
     );
   }
 
-  const data = [...usageHistory]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((entry) => ({ date: formatLabel(entry.date), runs: entry.count }));
+  const usageByDate = new Map<string, number>();
+  usageHistory.forEach((entry) => {
+    const key = toDateKey(entry.date);
+    usageByDate.set(key, (usageByDate.get(key) ?? 0) + entry.count);
+  });
+
+  const todayKey = toDateKey(new Date().toISOString());
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endDate = fromDateKey(todayKey);
+
+  const data: { date: string; runs: number }[] = [];
+  for (
+    let current = new Date(startDate);
+    current <= endDate;
+    current.setDate(current.getDate() + 1)
+  ) {
+    const key = toDateKey(current.toISOString());
+    data.push({ date: key, runs: usageByDate.get(key) ?? 0 });
+  }
+
+  const chartWidth = Math.max(data.length * 56, 520);
+  const sharedMargin = { top: 8, right: 16, bottom: 8, left: 0 };
 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -75,46 +125,22 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
             color: "#94a3b8",
           }}
         >
-          Daily CodeProof executions for the current month — limit {limit}.
+          Daily CodeProof executions — limit {limit} per day.
         </p>
       </div>
 
-      <div style={{ marginTop: "24px", height: "256px" }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div style={{ marginTop: "24px", height: `${CHART_HEIGHT}px`, display: "flex" }}>
+
+        {/* ── Fixed Y-axis panel — no overflow, no flex:1 ── */}
+        <div style={{ flexShrink: 0 }}>
           <LineChart
             data={data}
-            margin={{ top: 8, right: 8, left: -16, bottom: 8 }}
+            width={Y_AXIS_WIDTH + 16}
+            height={CHART_HEIGHT}
+            margin={{ ...sharedMargin, left: 0, right: 0 }}
           >
-            <defs>
-              <linearGradient
-                id="usageStrokeGradient"
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="0"
-              >
-                <stop offset="0%" stopColor="#1d6ef5" />
-                <stop offset="50%" stopColor="#06b6d4" />
-                <stop offset="100%" stopColor="#059669" />
-              </linearGradient>
-            </defs>
-
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(0,0,0,0.05)"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="date"
-              tick={{
-                fontSize: 11,
-                fill: "#94a3b8",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-              axisLine={false}
-              tickLine={false}
-            />
             <YAxis
+              width={Y_AXIS_WIDTH}
               tick={{
                 fontSize: 11,
                 fill: "#94a3b8",
@@ -123,7 +149,47 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
+              domain={[0, MAX_USAGE]}
             />
+            {/* Invisible line to keep scale in sync */}
+            <Line dataKey="runs" dot={false} stroke="transparent" />
+          </LineChart>
+        </div>
+
+        {/* ── Scrollable chart area — ref lives here ── */}
+        <div
+          ref={scrollRef}
+          style={{ flexGrow: 1, flexShrink: 1, flexBasis: "auto", overflowX: "auto" }}
+        >
+          <LineChart
+            data={data}
+            width={chartWidth}
+            height={CHART_HEIGHT}
+            margin={sharedMargin}
+          >
+
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(0,0,0,0.05)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="date"
+              ticks={data.map((entry) => entry.date)}
+              tickFormatter={formatLabel}
+              tick={{
+                fontSize: 11,
+                fill: "#94a3b8",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+              axisLine={false}
+              tickLine={false}
+              tickMargin={8}
+              interval={0}
+              minTickGap={0}
+            />
+            {/* Hidden Y-axis to maintain correct internal scaling */}
+            <YAxis hide domain={[0, MAX_USAGE]} />
             <Tooltip
               contentStyle={{
                 fontFamily: "'DM Sans', sans-serif",
@@ -138,35 +204,28 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
               }}
               labelStyle={{ fontWeight: 500, marginBottom: "4px" }}
             />
-            {/* Limit reference line — subtle rose, dashed */}
             <ReferenceLine
               y={limit}
-              stroke="rgba(225,29,72,0.35)"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
+              stroke="#dc2626"
+              strokeWidth={0.5}
               label={{
                 value: `Limit (${limit})`,
                 position: "insideTopRight",
                 fontSize: 10,
-                fill: "rgba(225,29,72,0.55)",
+                fill: "#dc2626",
                 fontFamily: "'DM Sans', sans-serif",
               }}
             />
             <Line
               type="monotone"
               dataKey="runs"
-              stroke="url(#usageStrokeGradient)"
+              stroke="#1d6ef5"
               strokeWidth={2}
-              dot={{ r: 3, fill: "#1d6ef5", strokeWidth: 0 }}
-              activeDot={{
-                r: 5,
-                fill: "#1d6ef5",
-                strokeWidth: 2,
-                stroke: "rgba(29,110,245,0.2)",
-              }}
+              dot={false}
+              activeDot={{ r: 4, fill: "#1d6ef5" }}
             />
           </LineChart>
-        </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

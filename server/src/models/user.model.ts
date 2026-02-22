@@ -1,14 +1,12 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
+import { formatLocalDateKey, startOfLocalDay } from "../utils/date";
 
 type UsageHistoryEntry = {
   date: string;
   count: number;
 };
 
-const startOfCurrentDay = () => {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-};
+const todayKey = () => formatLocalDateKey(new Date());
 
 export interface UserDocument extends Document {
   userId: string;
@@ -16,6 +14,9 @@ export interface UserDocument extends Document {
   plan: "free" | "premium";
   monthlyLimit: number;
   monthlyUsed: number;
+  dailyLimit: number;
+  dailyUsed: number;
+  usageDate: string;
   usageHistory: UsageHistoryEntry[];
   resetAt: Date;
   createdAt: Date;
@@ -29,6 +30,9 @@ const UserSchema = new Schema<UserDocument>(
     plan: { type: String, required: true, default: "free", enum: ["free", "premium"] },
     monthlyLimit: { type: Number, required: true, default: 20 },
     monthlyUsed: { type: Number, required: true, default: 0 },
+    dailyLimit: { type: Number, required: true, default: 20 },
+    dailyUsed: { type: Number, required: true, default: 0 },
+    usageDate: { type: String, required: true, default: todayKey },
     usageHistory: {
       type: [
         {
@@ -39,7 +43,7 @@ const UserSchema = new Schema<UserDocument>(
       required: true,
       default: [],
     },
-    resetAt: { type: Date, required: true, default: startOfCurrentDay },
+    resetAt: { type: Date, required: true, default: startOfLocalDay },
     createdAt: { type: Date, required: true, default: Date.now },
     lastLoginAt: { type: Date, required: true, default: Date.now },
   },
