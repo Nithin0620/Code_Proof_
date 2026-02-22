@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 
 import {
   CartesianGrid,
@@ -47,7 +48,19 @@ function fromDateKey(value: string) {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+const CHART_HEIGHT = 256;
+const Y_AXIS_WIDTH = 35;
+const MAX_USAGE = 30;
+
 export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [usageHistory.length]);
+
   if (!usageHistory.length) {
     return (
       <div
@@ -88,9 +101,8 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
     data.push({ date: key, runs: usageByDate.get(key) ?? 0 });
   }
 
-  const maxUsage = 30;
-  const limitLine = limit;
   const chartWidth = Math.max(data.length * 56, 520);
+  const sharedMargin = { top: 8, right: 16, bottom: 8, left: 0 };
 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -117,27 +129,44 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
         </p>
       </div>
 
-      <div style={{ marginTop: "24px", height: "256px" }}>
-        <div style={{ overflowX: "auto" }}>
+      <div style={{ marginTop: "24px", height: `${CHART_HEIGHT}px`, display: "flex" }}>
+
+        {/* ── Fixed Y-axis panel — no overflow, no flex:1 ── */}
+        <div style={{ flexShrink: 0 }}>
+          <LineChart
+            data={data}
+            width={Y_AXIS_WIDTH + 16}
+            height={CHART_HEIGHT}
+            margin={{ ...sharedMargin, left: 0, right: 0 }}
+          >
+            <YAxis
+              width={Y_AXIS_WIDTH}
+              tick={{
+                fontSize: 11,
+                fill: "#94a3b8",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+              domain={[0, MAX_USAGE]}
+            />
+            {/* Invisible line to keep scale in sync */}
+            <Line dataKey="runs" dot={false} stroke="transparent" />
+          </LineChart>
+        </div>
+
+        {/* ── Scrollable chart area — ref lives here ── */}
+        <div
+          ref={scrollRef}
+          style={{ flexGrow: 1, flexShrink: 1, flexBasis: "auto", overflowX: "auto" }}
+        >
           <LineChart
             data={data}
             width={chartWidth}
-            height={256}
-            margin={{ top: 8, right: 16, left: -8, bottom: 8 }}
+            height={CHART_HEIGHT}
+            margin={sharedMargin}
           >
-            <defs>
-              <linearGradient
-                id="usageStrokeGradient"
-                x1="0"
-                y1="0"
-                x2="1"
-                y2="0"
-              >
-                <stop offset="0%" stopColor="#1d6ef5" />
-                <stop offset="50%" stopColor="#06b6d4" />
-                <stop offset="100%" stopColor="#059669" />
-              </linearGradient>
-            </defs>
 
             <CartesianGrid
               strokeDasharray="3 3"
@@ -159,17 +188,8 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
               interval={0}
               minTickGap={0}
             />
-            <YAxis
-              tick={{
-                fontSize: 11,
-                fill: "#94a3b8",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-              domain={[0, maxUsage]}
-            />
+            {/* Hidden Y-axis to maintain correct internal scaling */}
+            <YAxis hide domain={[0, MAX_USAGE]} />
             <Tooltip
               contentStyle={{
                 fontFamily: "'DM Sans', sans-serif",
@@ -185,11 +205,11 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
               labelStyle={{ fontWeight: 500, marginBottom: "4px" }}
             />
             <ReferenceLine
-              y={limitLine}
+              y={limit}
               stroke="#dc2626"
               strokeWidth={0.5}
               label={{
-                value: `Limit (${limitLine})`,
+                value: `Limit (${limit})`,
                 position: "insideTopRight",
                 fontSize: 10,
                 fill: "#dc2626",
@@ -199,7 +219,7 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
             <Line
               type="monotone"
               dataKey="runs"
-              stroke="url(#usageStrokeGradient)"
+              stroke="#1d6ef5"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4, fill: "#1d6ef5" }}

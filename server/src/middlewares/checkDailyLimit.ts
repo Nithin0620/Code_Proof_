@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { UserModel } from "../models/user.model";
-
-const formatDateKey = (date: Date) => date.toISOString().slice(0, 10);
+import { formatLocalDateKey } from "../utils/date";
 
 export const checkDailyLimit = async (
   req: Request,
@@ -21,7 +20,7 @@ export const checkDailyLimit = async (
       return;
     }
 
-    const todayKey = formatDateKey(new Date());
+    const todayKey = formatLocalDateKey(new Date());
     if (!user.usageDate || user.usageDate !== todayKey) {
       user.dailyUsed = 0;
       user.usageDate = todayKey;

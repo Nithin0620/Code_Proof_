@@ -1,9 +1,8 @@
 import { UserModel, UserDocument } from "../../models/user.model";
 import { UsageSnapshot } from "./usage.model";
+import { formatLocalDateKey } from "../../utils/date";
 
 const DEFAULT_DAILY_LIMIT = 20;
-
-const formatDateKey = (date: Date) => date.toISOString().slice(0, 10);
 
 const buildSnapshot = (user: UserDocument): UsageSnapshot => {
   const limit = user.dailyLimit ?? DEFAULT_DAILY_LIMIT;
@@ -22,7 +21,7 @@ const buildSnapshot = (user: UserDocument): UsageSnapshot => {
 };
 
 const resetUsageIfNeeded = async (user: UserDocument): Promise<boolean> => {
-  const todayKey = formatDateKey(new Date());
+  const todayKey = formatLocalDateKey(new Date());
   if (!user.usageDate || user.usageDate !== todayKey) {
     user.dailyUsed = 0;
     user.dailyLimit = user.dailyLimit ?? DEFAULT_DAILY_LIMIT;
@@ -43,7 +42,7 @@ export const incrementDailyUsageForUser = async (userId: string) => {
 
   const limit = user.dailyLimit ?? DEFAULT_DAILY_LIMIT;
   const used = user.dailyUsed ?? 0;
-  const todayKey = formatDateKey(new Date());
+  const todayKey = formatLocalDateKey(new Date());
 
   user.dailyUsed = used + 1;
   const entry = user.usageHistory.find((item) => item.date === todayKey);
