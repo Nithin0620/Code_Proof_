@@ -31,18 +31,35 @@ function formatLabel(value: string) {
 }
 
 function toDateKey(value: string) {
+  // If already in YYYY-MM-DD format, return as-is (assumed to be UTC)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  // Parse and use UTC to match server's UTC-based date keys
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, "0");
-  const day = String(parsed.getDate()).padStart(2, "0");
+  const year = parsed.getUTCFullYear();
+  const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Gets UTC date key to match server's UTC-based date keys.
+ * Server uses UTC to ensure consistency across timezones.
+ */
+function getLocalDateKey(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
 function fromDateKey(value: string) {
   const parts = value.split("-").map(Number);
   if (parts.length === 3 && parts.every((part) => Number.isFinite(part))) {
-    return new Date(parts[0], parts[1] - 1, parts[2]);
+    // Create date in UTC to match server's UTC-based date keys
+    return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
   }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
@@ -82,23 +99,43 @@ export default function UsageGraph({ usageHistory, limit }: UsageGraphProps) {
 
   const usageByDate = new Map<string, number>();
   usageHistory.forEach((entry) => {
-    const key = toDateKey(entry.date);
+    // Server sends UTC date strings like "2024-01-15" (YYYY-MM-DD format)
+    // Use them directly since server now uses UTC
+    let key: string;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) {
+      // Server date is already in UTC format, use as-is
+      key = entry.date;
+    } else {
+      // Fallback: parse and convert to UTC date key
+      key = toDateKey(entry.date);
+    }
     usageByDate.set(key, (usageByDate.get(key) ?? 0) + entry.count);
   });
 
-  const todayKey = toDateKey(new Date().toISOString());
+  // Use UTC date to match server's UTC date keys
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayKey = getLocalDateKey(now);
+  // Create start of month in UTC
+  const startYear = now.getUTCFullYear();
+  const startMonth = now.getUTCMonth();
   const endDate = fromDateKey(todayKey);
 
   const data: { date: string; runs: number }[] = [];
-  for (
-    let current = new Date(startDate);
-    current <= endDate;
-    current.setDate(current.getDate() + 1)
-  ) {
-    const key = toDateKey(current.toISOString());
+  // Iterate through dates using UTC to avoid timezone shifts
+  const startDate = new Date(Date.UTC(startYear, startMonth, 1));
+  let current = new Date(startDate);
+  
+  while (current <= endDate) {
+    // Use UTC date key to match server's UTC-based date keys
+    const key = getLocalDateKey(current);
     data.push({ date: key, runs: usageByDate.get(key) ?? 0 });
+    
+    // Increment using UTC methods to avoid timezone issues
+    current = new Date(Date.UTC(
+      current.getUTCFullYear(),
+      current.getUTCMonth(),
+      current.getUTCDate() + 1
+    ));
   }
 
   const chartWidth = Math.max(data.length * 56, 520);

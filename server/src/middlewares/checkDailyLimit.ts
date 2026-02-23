@@ -25,12 +25,12 @@ export const checkDailyLimit = async (
       user.dailyUsed = 0;
       user.usageDate = todayKey;
       if (!user.dailyLimit) {
-        user.dailyLimit = 20;
+        user.dailyLimit = 50;
       }
       await user.save();
     }
 
-    const limit = user.dailyLimit ?? 20;
+    const limit = user.dailyLimit ?? 50;
     const used = user.dailyUsed ?? 0;
 
     if (used > limit) {

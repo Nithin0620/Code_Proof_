@@ -17,5 +17,13 @@
     "block": [],
     "warn": [],
     "allow": []
+  },
+  "aiPromptScanner": {
+    "enabled": true,
+    "useGemini": true
+  },
+  "dependencyScanner": {
+    "enabled": true,
+    "includeDevDependencies": true
   }
 }

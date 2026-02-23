@@ -136,9 +136,14 @@ export default function DashboardPage() {
         let usageMessage: string | null = null;
         try {
           usageSnapshot = await apiFetch<UsageResponse>("/api/usage");
+          // Ensure usageHistory is always an array
+          if (usageSnapshot && !Array.isArray(usageSnapshot.usageHistory)) {
+            usageSnapshot.usageHistory = [];
+          }
         } catch (e) {
           usageMessage =
             e instanceof Error ? e.message : "Unable to load usage metrics.";
+          console.error("[Dashboard] Failed to load usage:", e);
         }
 
         setProjects(projectsWithCounts);
@@ -227,7 +232,13 @@ export default function DashboardPage() {
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       )
       .forEach((r) => {
-        const key = new Date(r.timestamp).toISOString().slice(0, 10);
+        const d = new Date(r.timestamp);
+        if (Number.isNaN(d.getTime())) return;
+        // Group by local calendar day instead of UTC date to avoid off-by-one issues.
+        const year = d.getFullYear();
+        const month = `${d.getMonth() + 1}`.padStart(2, "0");
+        const day = `${d.getDate()}`.padStart(2, "0");
+        const key = `${year}-${month}-${day}`;
         byDate.set(key, (byDate.get(key) ?? 0) + r.summary.findings);
       });
     return Array.from(byDate.entries()).map(([date, findings]) => ({
@@ -537,12 +548,12 @@ export default function DashboardPage() {
                       percentage={usageData.percentage}
                     />
                   </div>
-                  <div className="dash-card">
+                  {/* <div className="dash-card">
                     <UsageGraph
                       usageHistory={usageData.usageHistory}
                       limit={usageData.dailyLimit}
                     />
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 <div className="dash-skeleton">

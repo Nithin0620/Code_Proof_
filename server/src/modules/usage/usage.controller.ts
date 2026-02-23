@@ -51,7 +51,13 @@ export const getUsageHandler = async (
 
     const snapshot = await getUsageForUser(userId);
 
-    res.status(200).json({ ...snapshot });
+    // Ensure usageHistory is always an array
+    const response = {
+      ...snapshot,
+      usageHistory: Array.isArray(snapshot.usageHistory) ? snapshot.usageHistory : []
+    };
+
+    res.status(200).json(response);
   } catch (err) {
     const message = (err as Error).message || "Unable to fetch usage";
     if (message.includes("not found")) {
