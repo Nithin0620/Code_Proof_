@@ -11,6 +11,11 @@ export interface FindingDocument extends Document {
   codeSnippet: string;
   explanation: string;
   createdAt: Date;
+  // AI escalation fields (optional)
+  aiEscalated?: boolean;
+  aiFound?: boolean;
+  risk?: string;
+  aiConfidence?: number;
 }
 
 const FindingSchema = new Schema<FindingDocument>(
@@ -25,6 +30,11 @@ const FindingSchema = new Schema<FindingDocument>(
     codeSnippet: { type: String, required: true },
     explanation: { type: String, required: true },
     createdAt: { type: Date, required: true, default: Date.now },
+    // AI escalation fields (optional)
+    aiEscalated: { type: Boolean, required: false },
+    aiFound: { type: Boolean, required: false },
+    risk: { type: String, required: false },
+    aiConfidence: { type: Number, required: false },
   },
   { versionKey: false }
 );

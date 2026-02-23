@@ -5,10 +5,11 @@ import { logWarn } from "../utils/logger.js";
 // AI contextual analysis layer. Only low-confidence findings reach this stage.
 // Regex-first keeps the fast baseline deterministic; AI is a cautious fallback.
 
-const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 7000; // Extended timeout for AI API
+const AI_API_ENDPOINT = "https://secretscan-deployed.onrender.com/predict";
 
 function getAiConfig() {
-  const apiUrl = process.env.AI_API_URL || "";
+  const apiUrl = process.env.AI_API_URL || AI_API_ENDPOINT;
   const timeoutMs = Number(process.env.AI_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
   return { apiUrl, timeoutMs };
 }
@@ -23,7 +24,11 @@ function fallbackDecision(finding, reason) {
     verdict: "warn",
     confidence: 0.35,
     explanation: "AI unavailable; defaulting to warn for manual review.",
-    suggestedFix: "Review the value and move secrets to environment variables."
+    suggestedFix: "Review the value and move secrets to environment variables.",
+    aiEscalated: true,
+    aiFound: false,
+    risk: "No Risk",
+    aiConfidence: 0
   };
 }
 
@@ -85,6 +90,14 @@ function postJsonWithTimeout({ url, payload, timeoutMs }) {
   });
 }
 
+function extractCodeLines(snippet, maxLines = 10) {
+  if (!snippet) return "";
+  
+  const lines = snippet.split("\n").filter(line => line.trim().length > 0);
+  const selectedLines = lines.slice(0, maxLines);
+  return selectedLines.join("\n");
+}
+
 async function callModel(finding) {
   const { apiUrl, timeoutMs } = getAiConfig();
 
@@ -92,30 +105,45 @@ async function callModel(finding) {
     throw new Error("AI_API_URL is not configured");
   }
 
+  // Extract 5-10 lines of suspicious code
+  const codeSnippet = extractCodeLines(finding.snippet, 10);
+
   const response = await postJsonWithTimeout({
     url: apiUrl,
     timeoutMs,
     payload: {
-      code: finding.snippet || ""
+      code: codeSnippet
     }
   });
 
+  // Validate response structure
   if (!response || typeof response.found !== "boolean") {
     throw new Error("AI API returned invalid payload");
   }
 
-  const verdict = response.found && response.risk === "Critical" ? "block" : "warn";
-  const confidence = response.found ? 0.85 : 0.35;
-  const explanation = response.found
-    ? `AI detected ${response.risk} risk: ${response.secret || "secret value"}`
-    : "AI did not detect risk in this code snippet.";
+  // Map AI response to decision format
+  const aiFound = response.found === true;
+  const risk = response.risk || "No Risk";
+  const aiConfidence = typeof response.confidence === "number" ? response.confidence : 0;
+
+  // Determine verdict based on AI findings
+  const verdict = aiFound && (risk === "High" || risk === "Critical") ? "block" : "warn";
+  const normalizedConfidence = aiConfidence / 100; // Convert percentage to 0-1 scale
+  
+  const explanation = aiFound
+    ? `AI detected ${risk} risk (${aiConfidence.toFixed(2)}% confidence)`
+    : `AI analysis: ${risk} (${aiConfidence.toFixed(2)}% confidence)`;
 
   return {
     findingId: finding.findingId,
     verdict,
-    confidence,
+    confidence: normalizedConfidence,
     explanation,
-    suggestedFix: response.found ? "Move secrets to environment variables." : undefined
+    suggestedFix: aiFound ? "Move secrets to environment variables." : undefined,
+    aiEscalated: true,
+    aiFound: aiFound,
+    risk: risk,
+    aiConfidence: aiConfidence
   };
 }
 

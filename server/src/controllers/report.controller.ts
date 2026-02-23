@@ -183,6 +183,12 @@ const validatePayload = (body: unknown): ReportPayload => {
       throw new PayloadError(`findings[${index}].explanation is required`);
     }
 
+    // Optional AI escalation fields (validate if present)
+    const aiEscalated = finding.aiEscalated !== undefined ? Boolean(finding.aiEscalated) : undefined;
+    const aiFound = finding.aiFound !== undefined ? Boolean(finding.aiFound) : undefined;
+    const risk = finding.risk !== undefined && isNonEmptyString(finding.risk) ? finding.risk : undefined;
+    const aiConfidence = finding.aiConfidence !== undefined && isNumber(finding.aiConfidence) ? finding.aiConfidence : undefined;
+
     return {
       ruleId: finding.ruleId,
       severity: finding.severity,
@@ -191,6 +197,12 @@ const validatePayload = (body: unknown): ReportPayload => {
       lineNumber: finding.lineNumber,
       codeSnippet: finding.codeSnippet,
       explanation: finding.explanation,
+      ...(aiEscalated !== undefined && {
+        aiEscalated,
+        aiFound,
+        risk,
+        aiConfidence
+      })
     };
   });
 

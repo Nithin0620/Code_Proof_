@@ -28,6 +28,11 @@ type Finding = {
   codeSnippet: string;
   explanation: string;
   createdAt: string;
+  // AI escalation fields (optional)
+  aiEscalated?: boolean;
+  aiFound?: boolean;
+  risk?: string;
+  aiConfidence?: number;
 };
 
 type ReportResponse = {
@@ -684,7 +689,67 @@ export default async function ReportPage({ params }: ReportPageProps) {
                           }}
                         >
                           {finding.explanation}
+                          {finding.aiEscalated && finding.aiConfidence !== undefined && (
+                            <span
+                              style={{
+                                fontWeight: 400,
+                                color: "#3b82f6",
+                                marginLeft: "8px",
+                              }}
+                            >
+                              • AI Confidence: {finding.aiConfidence.toFixed(2)}%
+                            </span>
+                          )}
                         </p>
+                      )}
+                      
+                      {/* AI Escalation Info */}
+                      {finding.aiEscalated && finding.risk && (
+                        <div
+                          style={{
+                            marginTop: "10px",
+                            padding: "8px 12px",
+                            background: "rgba(59, 130, 246, 0.04)",
+                            border: "1px solid rgba(59, 130, 246, 0.15)",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: "'DM Sans',sans-serif",
+                              fontSize: "10px",
+                              fontWeight: 500,
+                              letterSpacing: "0.06em",
+                              textTransform: "uppercase",
+                              color: "#3b82f6",
+                              background: "rgba(59, 130, 246, 0.10)",
+                              padding: "3px 8px",
+                              borderRadius: "100px",
+                              display: "inline-block",
+                            }}
+                          >
+                            🤖 AI Verified
+                          </span>
+                          
+                          <span
+                            style={{
+                              fontFamily: "'DM Sans',sans-serif",
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              color: finding.risk === "High" || finding.risk === "Critical" 
+                                ? "#e11d48" 
+                                : finding.risk === "Medium" 
+                                ? "#f59e0b" 
+                                : "#10b981",
+                            }}
+                          >
+                            Risk: {finding.risk}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>

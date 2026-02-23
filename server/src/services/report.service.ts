@@ -26,6 +26,11 @@ export type ReportWithFindings = {
     codeSnippet: string;
     explanation: string;
     createdAt: Date;
+    // AI escalation fields (optional)
+    aiEscalated?: boolean;
+    aiFound?: boolean;
+    risk?: string;
+    aiConfidence?: number;
   }>;
 };
 
@@ -45,7 +50,7 @@ export const getReportWithFindings = async (
 
   const findings = await FindingModel.find({ reportId })
     .select(
-      "findingId ruleId severity confidence filePath lineNumber codeSnippet explanation createdAt -_id"
+      "findingId ruleId severity confidence filePath lineNumber codeSnippet explanation createdAt aiEscalated aiFound risk aiConfidence -_id"
     )
     .lean();
 

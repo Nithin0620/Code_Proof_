@@ -70,14 +70,27 @@ export function buildReport({
     const codeSnippet = trimSnippet(redactSecretSnippet(finding.ruleId, finding.snippet));
     const explanation = decision?.explanation || finding.message || "No explanation available";
     
+    // Include AI escalation fields if AI was involved
+    const aiEscalated = decision ? decision.aiEscalated === true : false;
+    const aiFound = decision ? decision.aiFound === true : false;
+    const risk = decision?.risk || undefined;
+    const aiConfidence = decision?.aiConfidence || undefined;
+    
     return {
       ruleId: finding.ruleId,
       severity,
       confidence,
       filePath: toRelativePath(projectRoot, finding.filePath),
-      lineNumber: finding.line || 1, // Server requires a number, default to 1 if missing
-      codeSnippet: codeSnippet || " ", // Server requires non-empty string, use space if empty
-      explanation: explanation || "No explanation available" // Server requires non-empty string
+      lineNumber: finding.line || 1,
+      codeSnippet: codeSnippet || " ",
+      explanation: explanation || "No explanation available",
+      // AI escalation fields (optional)
+      ...(aiEscalated && {
+        aiEscalated,
+        aiFound,
+        risk,
+        aiConfidence
+      })
     };
   });
 
