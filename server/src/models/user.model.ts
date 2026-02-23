@@ -28,9 +28,9 @@ const UserSchema = new Schema<UserDocument>(
     userId: { type: String, required: true, unique: true },
     linkedClientIds: { type: [String], required: true, default: [] },
     plan: { type: String, required: true, default: "free", enum: ["free", "premium"] },
-    monthlyLimit: { type: Number, required: true, default: 20 },
+    monthlyLimit: { type: Number, required: true, default: 50 },
     monthlyUsed: { type: Number, required: true, default: 0 },
-    dailyLimit: { type: Number, required: true, default: 20 },
+    dailyLimit: { type: Number, required: true, default: 50 },
     dailyUsed: { type: Number, required: true, default: 0 },
     usageDate: { type: String, required: true, default: todayKey },
     usageHistory: {
@@ -43,7 +43,8 @@ const UserSchema = new Schema<UserDocument>(
       required: true,
       default: [],
     },
-    resetAt: { type: Date, required: true, default: startOfLocalDay },
+    // Mongoose default functions should be zero-arg for best TS compatibility.
+    resetAt: { type: Date, required: true, default: () => startOfLocalDay() },
     createdAt: { type: Date, required: true, default: Date.now },
     lastLoginAt: { type: Date, required: true, default: Date.now },
   },

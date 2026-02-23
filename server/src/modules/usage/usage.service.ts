@@ -2,7 +2,7 @@ import { UserModel, UserDocument } from "../../models/user.model";
 import { UsageSnapshot } from "./usage.model";
 import { formatLocalDateKey } from "../../utils/date";
 
-const DEFAULT_DAILY_LIMIT = 20;
+const DEFAULT_DAILY_LIMIT = 50;
 
 const buildSnapshot = (user: UserDocument): UsageSnapshot => {
   const limit = user.dailyLimit ?? DEFAULT_DAILY_LIMIT;
@@ -113,5 +113,19 @@ export const getUsageForUser = async (userId: string): Promise<UsageSnapshot> =>
 
   await resetUsageIfNeeded(user);
 
-  return buildSnapshot(user);
+  const snapshot = buildSnapshot(user);
+  
+  // Ensure usageHistory is always an array and properly formatted
+  if (!Array.isArray(snapshot.usageHistory)) {
+    snapshot.usageHistory = [];
+  }
+  
+  // Sort usage history by date (newest first) for consistent display
+  snapshot.usageHistory.sort((a, b) => {
+    if (a.date > b.date) return -1;
+    if (a.date < b.date) return 1;
+    return 0;
+  });
+
+  return snapshot;
 };

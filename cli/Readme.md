@@ -8,7 +8,7 @@ Features
 - Run security scans on staged or full files.
 - Enforce commit safety with configurable rules.
 - Generate local reports and optionally sync them to the server.
-- Usage tracking with monthly limits (free tier default 20 runs).
+- Usage tracking with monthly limits (free tier default 50 runs).
 
 Installation
 ------------
@@ -68,6 +68,10 @@ Example:
 	"projectType": "Node",
 	"scanMode": "staged",
 	"enforcement": "enabled",
+	"aiPromptScanner": {
+		"enabled": true,
+		"useGemini": true
+	},
 	"features": {
 		"reporting": true,
 		"integration": true,
@@ -86,7 +90,7 @@ Usage Limits (Server-Enforced)
 CodeProof enforces monthly run limits on the server.
 
 - Default plan: free
-- Default monthly limit: 20
+- Default monthly limit: 50
 - The CLI checks usage before each run
 - If the server is unreachable, the CLI fails closed and stops the run
 
