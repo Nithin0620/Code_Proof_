@@ -2,7 +2,7 @@ import { UserModel, UserDocument } from "../../models/user.model";
 import { UsageSnapshot } from "./usage.model";
 import { formatLocalDateKey } from "../../utils/date";
 
-const DEFAULT_DAILY_LIMIT = 20;
+const DEFAULT_DAILY_LIMIT = 50;
 
 const buildSnapshot = (user: UserDocument): UsageSnapshot => {
   const limit = user.dailyLimit ?? DEFAULT_DAILY_LIMIT;
